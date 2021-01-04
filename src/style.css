@@ -1,0 +1,16 @@
+#window {
+    width: 300px;
+    height: 600px;
+    background: antiquewhite;
+    margin: auto;
+    position: relative;
+}
+
+.figure {
+    width: 30px;
+    height: 30px;
+    background-color: gainsboro;
+    display: inline-block;
+    margin-top: -3.6px;
+    outline: 1px dashed black;
+}
