@@ -1,4 +1,4 @@
-#window {
+#game-filed {
     width: 300px;
     height: 600px;
     background: antiquewhite;
@@ -13,4 +13,25 @@
     display: inline-block;
     margin-top: -3.6px;
     outline: 1px dashed black;
+}
+
+.score {
+    width: 160px;
+    height: 190px;
+    position: absolute;
+    border: 4px double black;
+    padding: 10px;
+    left: 300px;
+}
+
+#game-score {
+    text-align: center;
+    font-size: 30px;
+    font-weight: bold;
+}
+
+#game-step {
+    text-align: center;
+    font-size: 30px;
+    font-weight: bold;
 }

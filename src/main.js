@@ -5,9 +5,9 @@ import {Key} from "./enums.js";
 import {L, I, L_i, T, Z_i, Z, O} from "./figures.js";
 
 
-export let startCell = 4;
-let figure, interval, number = 0, timeout = 800, leftSideChecker = false, previousNumber = 0, rightSideChecker = false,
-    footerChecker = false, figureSubViewsName, counter = 0;
+export let currentX = 4;
+let figure, interval, futureY = 0, timeout = 500, leftSideChecker = false, currentY = 0, rightSideChecker = false,
+    footerChecker = false, figureSubViewsName, view = 0, figureSubViews, score = 0, scoreStep = 0, newStep = false, changeTimeout = 500;
 
 
 function paintField() {
@@ -19,10 +19,13 @@ function paintField() {
             if (mainField[i][j] === 1) {
                 element.style.backgroundColor = 'red';
             }
-            document.getElementById('window').appendChild(element);
+            document.getElementById('game-filed').appendChild(element);
+            document.getElementById('game-score').innerText = '0';
+            document.getElementById('game-step').innerText = '0';
         }
     }
     move();
+    keyListeners();
 }
 
 paintField();
@@ -40,19 +43,45 @@ function birthElement() {
 function move(birth = true) {
     if (birth) {
         birthElement();
-        keyListeners();
     }
     interval = setInterval(function () {
-        previousNumber = number++;
+        if (scoreStep == 2 && !newStep) {
+            changeTimeout = timeout = 400;
+            newStep = true;
+            clearInterval(interval);
+            move(birth);
+        } else if (scoreStep == 60 && !newStep) {
+            changeTimeout = timeout = 250;
+            newStep = true;
+            clearInterval(interval);
+            move(birth);
+        } else if (scoreStep == 90 && !newStep) {
+            changeTimeout = timeout = 150;
+            newStep = true;
+            clearInterval(interval);
+            move(birth);
+        }
+        currentY = futureY++;
         let endGame = false;
-        if (previousNumber + figure.length > mainField.length || footerChecker) {
-            let count = 0;
-            startCell = 4;
+        for (let i = 0; i < figure.length; i++) {
+            for (let j = 0; j < figure[i].length; j++) {
+                if (currentY + i < mainField.length && currentX + j < mainField.length) {
+                    if (figure[i][j] == 1 && mainField[currentY + i][currentX + j] == 2) {
+                        footerChecker = true;
+                        break;
+                    }
+                }
+            }
+        }
+        if (currentY + figure.length > mainField.length || footerChecker) {
+            let count = 0, scoreCount = 0;
+            currentX = 4;
             mainField.forEach((t, i) => t.forEach((v, j) => {
                 if (mainField[i][j] == 1) mainField[i][j] = 2;
                 if (mainField[i][j] == 2) ++count;
                 if (j == mainField[i].length - 1) {
                     if (count == mainField[i].length) {
+                        scoreCount++;
                         mainField.splice(i, 1);
                         mainField.splice(0, 0, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
                         mainField.forEach((t, i) => t.forEach((v, j) => {
@@ -65,13 +94,24 @@ function move(birth = true) {
                     count = 0;
                 }
             }));
-            number = previousNumber = 0;
+            if (scoreCount == 4) score += 4000;
+            else if (scoreCount == 3) score +=2000;
+            else if (scoreCount == 2) score += 1000;
+            else if (scoreCount == 1) score += 500;
+            if (scoreCount) {
+                scoreStep++;
+                newStep = false;
+            }
+            document.getElementById('game-score').innerText = score.toString();
+            document.getElementById('game-step').innerText = scoreStep.toString();
+            scoreCount = 0;
+            futureY = currentY = 0;
             footerChecker = false;
-            counter = 0;
+            view = 0;
             birthElement();
             let x = 0;
             for (let y = 0; y < figure.length; y++) {
-                for (let j = startCell; j < startCell + figure[y].length; j++) {
+                for (let j = currentX; j < currentX + figure[y].length; j++) {
                     if (mainField[y][j] == 2 && figure[y][x] == 1) {
                         clearInterval(interval);
                         endGame = true;
@@ -82,10 +122,9 @@ function move(birth = true) {
                 }
             }
         }
-
         if (!endGame) {
-            clearPreviousCells(figure, previousNumber, startCell, true);
-            assignToMainField(figure, previousNumber, startCell);
+            clearPreviousCells(figure, currentY, currentX, true);
+            assignToMainField(figure, currentY, currentX);
         }
     }, timeout);
 }
@@ -93,32 +132,21 @@ function move(birth = true) {
 
 function assignToMainField(figure, y, x) {
     let startX = x;
-    let leftCount = 0, rightCount = 0, footerCount = 0;
+    let leftCount = 0, rightCount = 0;
     for (let i = 0; i < figure.length; i++) {
         for (let j = 0; j < figure[i].length; j++) {
             if (mainField[y][x] != 2) mainField[y][x] = figure[i][j];
             if (document.getElementById('figure' + [y] + [x]) && mainField[y][x] == 1)
                 document.getElementById('figure' + [y] + [x]).style.backgroundColor = 'blue';
 
-            if (y + 1 < mainField.length && mainField[y + 1][x] == 2 && mainField[y][x] == 1)
-                footerChecker = true;
-            else if (y + 1 < mainField.length && mainField[y + 1][x] != 2)
-                footerCount++;
-
-            if (startX + figure[i].length <= mainField[i].length && mainField[y][startX + figure[i].length] == 2
-                && mainField[y][startX + figure[i].length - 1] == 1) {
+            if (startX + figure[i].length <= mainField[i].length && mainField[y][x + 1] == 2 && mainField[y][x] == 1) {
                 rightSideChecker = true;
-            } else if (startX + figure[i].length <= mainField[i].length
-                && (mainField[y][startX + figure[i].length] != 2 && mainField[y][startX + figure[i].length - 1] == 0
-                    || mainField[y][startX + figure[i].length] == 2 && mainField[y][startX + figure[i].length - 1] == 0
-                    || mainField[y][startX + figure[i].length] != 2 && mainField[y][startX + figure[i].length - 1] == 1)) {
+            } else {
                 rightCount++;
             }
-            if (startX - 1 >= 0 && mainField[y][startX - 1] == 2 && mainField[y][startX] == 1) {
+            if (startX - 1 >= 0 && mainField[y][x - 1] == 2 && mainField[y][x] == 1) {
                 leftSideChecker = true;
-            } else if (startX - 1 >= 0 && mainField[y][startX - 1] != 2 && mainField[y][startX] == 0
-                || startX - 1 >= 0 && mainField[y][startX - 1] == 2 && mainField[y][startX] == 0
-                || startX - 1 >= 0 && mainField[y][startX - 1] != 2 && mainField[y][startX] == 1) {
+            } else {
                 leftCount++
             }
             x++;
@@ -128,7 +156,6 @@ function assignToMainField(figure, y, x) {
     }
     if (leftCount == figure.length * figure[0].length) leftSideChecker = false;
     if (rightCount == figure.length * figure[0].length) rightSideChecker = false;
-    if (footerCount == figure.length * figure[0].length) footerChecker = false;
 }
 
 
@@ -158,17 +185,17 @@ function keyListeners() {
 function keyDownListener(ev) {
     switch (ev.code) {
         case Key.LEFT:
-            if (startCell > 0 && !leftSideChecker) {
-                clearPreviousCells(figure, previousNumber, startCell, false);
-                startCell -= 1;
-                assignToMainField(figure, previousNumber, startCell)
+            if (currentX > 0 && !leftSideChecker) {
+                clearPreviousCells(figure, currentY, currentX, false);
+                currentX -= 1;
+                assignToMainField(figure, currentY, currentX)
             }
             break;
         case Key.RIGHT:
-            if (startCell < mainField[0].length - figure[0].length && !rightSideChecker) {
-                clearPreviousCells(figure, previousNumber, startCell, false);
-                startCell += 1;
-                assignToMainField(figure, previousNumber, startCell)
+            if (currentX < mainField[0].length - figure[0].length && !rightSideChecker) {
+                clearPreviousCells(figure, currentY, currentX, false);
+                currentX += 1;
+                assignToMainField(figure, currentY, currentX)
             }
             break;
         case Key.DOWN:
@@ -185,7 +212,7 @@ function keyDownListener(ev) {
 function keyUpListener(ev) {
     switch (ev.code) {
         case Key.DOWN:
-            timeout = 800;
+            timeout = changeTimeout;
             clearInterval(interval);
             move(false);
             break;
@@ -193,7 +220,7 @@ function keyUpListener(ev) {
 }
 
 function turn() {
-    let size = 0, figureSubViews;
+    let size = 0, prohibited = false, minusX = 0, minusY = 0, count = 0, check = false;
     switch (figureSubViewsName) {
         case 'L':
             figureSubViews = L;
@@ -224,16 +251,82 @@ function turn() {
             size = O.length;
             break;
     }
-    let previousFigure = figure;
-    figure = figureSubViews[counter];
-    if (counter >= size - 1) counter = 0;
-    else counter++;
-    clearPreviousCells(previousFigure, previousNumber, startCell, false);
-    if (startCell + figure[0].length > mainField[0].length) {
-        startCell = mainField[0].length - figure[0].length;
-    } else if (previousNumber + figure.length > mainField.length) {
-        previousNumber = mainField.length - figure.length;
-        number = mainField.length - figure.length
+    for (let y = 0; y < figureSubViews[view].length; y++) {
+        if (check) break;
+        for (let x = 0; x < figureSubViews[view][y].length; x++) {
+            if (figureSubViews != I) {
+                if (currentX + figureSubViews[view][0].length - 1 >= mainField[y].length) {
+                    if (mainField[currentY + y][currentX - 1] == 0 && figureSubViews[view][y][0] == 1) {
+                        minusX = 1;
+                    } else if (mainField[currentY + y][currentX - 1] == 2 && figureSubViews[view][y][0] == 1) {
+                        prohibited = true;
+                        break
+                    }
+                } else if (currentY + figureSubViews[view].length - 1 >= mainField.length) {
+                    if (mainField[currentY - 1][currentX + x] == 0 && figureSubViews[view][0][x] == 1) {
+                        minusY = 1;
+                    } else if (mainField[currentY - 1][currentX + x] == 2 && figureSubViews[view][0][x] == 1) {
+                        prohibited = true;
+                        break
+                    }
+                } else if (figureSubViews[view][y][x] == 1 && mainField[currentY + y][currentX + x] == 2) {
+                    if (figureSubViews[view].length == 2) {
+                        for (let i = 0; i < figureSubViews[view].length; i++) {
+                            if (mainField[currentY + i][currentX - 1] == 0 && figureSubViews[view][i][0] == 1) {
+                                minusX = 1;
+                            } else if (currentX - 1 < 0 || mainField[currentY + i][currentX - 1] == 2 && figureSubViews[view][i][0] == 1) {
+                                prohibited = true;
+                                break
+                            }
+                        }
+                    } else if (figureSubViews[view].length == 3) {
+                        for (let i = 0; i < figureSubViews[view].length; i++) {
+                            if (mainField[currentY - 1][currentX + i] == 0 && figureSubViews[view][0][i] == 1) {
+                                minusY = 1;
+                            } else if (mainField[currentY - 1][currentX + i] == 2 && figureSubViews[view][0][i] == 1
+                                || mainField[currentY + 1][currentX] == 2 && figureSubViews[view][figureSubViews[view].length - 1][0] == 1) {
+                                prohibited = true;
+                                break
+                            }
+                        }
+                    }
+                }
+            } else if (figureSubViews == I) {
+                if (figureSubViews[view].length == 1) {
+                    if (currentX + x >= mainField[y].length || mainField[currentY][currentX+x] == 2) {
+                        for (let i = figureSubViews[view][y].length - x; i > 0 ; i--) {
+                            if (mainField[currentY][currentX - i] == 0) {
+                                minusX = figureSubViews[view][y].length - x;
+                            } else {
+                                prohibited = true;
+                                break
+                            }
+                        }
+                        break
+                    }
+                } else if (figureSubViews[view].length == 4) {
+                    if (currentY + y >= mainField.length || mainField[currentY+y][currentX] == 2) {
+                        for (let i = figureSubViews[view].length - y; i > 0 ; i--) {
+                            if (mainField[currentY-i][currentX] == 0) {
+                                minusY = figureSubViews[view].length - y;
+                                check = true;
+                            } else {
+                                prohibited = true;
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
-    assignToMainField(figure, previousNumber, startCell);
+    if (!prohibited) {
+        let previousFigure = figure;
+        figure = figureSubViews[view];
+        view = view >= size - 1 ? 0 : view + 1;
+        clearPreviousCells(previousFigure, currentY, currentX, false);
+        if (minusX) currentX -= minusX;
+        else if (minusY) futureY = currentY -= minusY;
+        assignToMainField(figure, currentY, currentX);
+    }
 }
