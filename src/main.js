@@ -45,7 +45,7 @@ function move(birth = true) {
         birthElement();
     }
     interval = setInterval(function () {
-        if (scoreStep == 2 && !newStep) {
+        if (scoreStep == 30 && !newStep) {
             changeTimeout = timeout = 400;
             newStep = true;
             clearInterval(interval);
